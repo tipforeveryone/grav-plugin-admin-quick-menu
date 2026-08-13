@@ -1,0 +1,5 @@
+enabled: true
+menu_shortcuts:
+  - label: "Bài viết kiến thức"
+    parent_path: "/kienthucphaply"
+    template: "article"

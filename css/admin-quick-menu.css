@@ -1,0 +1,118 @@
+/* Admin Quick Menu
+   CSS ĐỘC LẬP của plugin — không dùng chung biến/sass của theme.
+   Icon tròn nổi góc trên-phải mọi trang, CLICK để mở/đóng menu (checkbox-hack,
+   không cần JS), layout dropdown tham khảo style ".submenu"/".menu-link" của
+   menu chính trong theme (xem css/phuongmailaw.css) để đồng bộ giao diện. */
+
+.aqm-menu {
+    --aqm-bg: #1C3D66;
+    --aqm-bg-hover: #107c10;
+    --aqm-light-gray: #f5f5f5;
+
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 9999;
+}
+
+.aqm-checkbox {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.aqm-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--aqm-bg);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: background-color .2s ease, transform .2s ease;
+}
+
+.aqm-checkbox:checked + .aqm-trigger,
+.aqm-trigger:hover {
+    background: var(--aqm-bg-hover);
+}
+
+.aqm-dropdown {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0.5rem 0;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 4px;
+    border-top: 3px solid var(--aqm-bg);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease, visibility .25s ease;
+}
+
+.aqm-checkbox:checked ~ .aqm-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.aqm-item {
+    margin: 0;
+    padding: 0;
+}
+
+.aqm-form {
+    margin: 0;
+}
+
+.aqm-link {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    background: none;
+    color: #333;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .15s ease;
+}
+
+.aqm-link:hover,
+.aqm-link:focus-visible {
+    background-color: var(--aqm-light-gray);
+}
+
+.aqm-link--admin {
+    font-weight: 600;
+    color: var(--aqm-bg);
+}
+
+.aqm-group-label {
+    margin-top: 0.25rem;
+    padding: 0.5rem 1.5rem 0.25rem;
+    border-top: 1px solid #eee;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #999;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .aqm-trigger,
+    .aqm-dropdown {
+        transition: none;
+    }
+}

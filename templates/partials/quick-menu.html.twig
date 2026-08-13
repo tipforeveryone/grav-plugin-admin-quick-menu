@@ -1,0 +1,40 @@
+<div class="aqm-menu">
+    <input type="checkbox" id="aqm-toggle" class="aqm-checkbox">
+    <label for="aqm-toggle" class="aqm-trigger" aria-label="Menu quản trị nhanh">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </label>
+    <ul class="aqm-dropdown">
+        <li class="aqm-item">
+            <a href="{{ admin_url }}" class="aqm-link aqm-link--admin">Trang quản trị</a>
+        </li>
+
+        {% if shortcuts %}
+        <li class="aqm-group-label">Thêm mới</li>
+        {% for item in shortcuts %}
+        <li class="aqm-item">
+            <form method="post" action="{{ item.action_url }}" class="aqm-form">
+                <input type="hidden" name="task" value="continue">
+                <input type="hidden" name="data[route]" value="{{ item.parent_path }}">
+                <input type="hidden" name="data[name]" value="{{ item.template }}">
+                <input type="hidden" name="data[title]" value="{{ item.label }}">
+                {{ nonce_field('admin-form', 'admin-nonce')|raw }}
+                <button type="submit" class="aqm-link">{{ item.label }}</button>
+            </form>
+        </li>
+        {% endfor %}
+        {% endif %}
+
+        {% if custom_links %}
+        <li class="aqm-group-label">Liên kết</li>
+        {% for item in custom_links %}
+        <li class="aqm-item">
+            <a href="{{ item.url }}" class="aqm-link">{{ item.label }}</a>
+        </li>
+        {% endfor %}
+        {% endif %}
+    </ul>
+</div>

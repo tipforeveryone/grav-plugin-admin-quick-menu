@@ -1,0 +1,66 @@
+name: "[TIP] - Admin Quick Menu"
+version: 0.1.0
+description: Menu nổi góc trên-phải frontend cho admin, tạo nhanh bài viết với thư mục cha + template đã cấu hình sẵn.
+icon: plus-circle
+author:
+  name: tipforeveryone
+keywords: admin, quick menu, add page, shortcut
+license: MIT
+
+dependencies:
+  - { name: grav, version: '>=1.7.0' }
+  - { name: admin }
+
+form:
+  validation: loose
+  fields:
+    enabled:
+      type: toggle
+      label: Plugin status
+      highlight: 1
+      default: 1
+      options:
+        1: Enabled
+        0: Disabled
+      validate:
+        type: bool
+    menu_shortcuts:
+      type: list
+      style: vertical
+      collapsible: 1
+      label: Danh sách menu tạo bài viết nhanh
+      help: Mỗi mục là một shortcut tạo bài viết mới với thư mục cha + template đã định trước.
+      fields:
+        .label:
+          type: text
+          label: Tên hiển thị
+          validate:
+            required: true
+        .parent_path:
+          type: text
+          label: Đường dẫn thư mục cha
+          help: 'VD: /kienthucphaply (để trống = thư mục gốc)'
+        .template:
+          type: text
+          label: Template
+          help: 'Tên file .md không đuôi, VD: article'
+          validate:
+            required: true
+    custom_links:
+      type: list
+      style: vertical
+      collapsible: 1
+      label: Danh sách liên kết tùy chỉnh
+      help: Link tĩnh tới bất kỳ trang nào, chỉ cần tên hiển thị + đường dẫn tương đối.
+      fields:
+        .label:
+          type: text
+          label: Tên hiển thị
+          validate:
+            required: true
+        .url:
+          type: text
+          label: Đường dẫn tương đối
+          help: 'VD: /lien-he hoặc /admin/pages/kienthucphaply'
+          validate:
+            required: true
