@@ -1,0 +1,39 @@
+{% extends 'partials/base.html.twig' %}
+
+{% set title = "Quick Add Content" %}
+
+{% block titlebar %}
+    <div class="button-bar">
+        <a class="button" href="{{ base_url }}"><i class="fa fa-reply"></i> {{ "PLUGIN_ADMIN.BACK"|t }}</a>
+    </div>
+    <h1><i class="fa fa-fw fa-plus-circle"></i> Quick Add Content</h1>
+{% endblock %}
+
+{% block content %}
+    <div class="qac-wrapper">
+        {% if quick_add_shortcuts %}
+            <div class="qac-grid">
+                {% for item in quick_add_shortcuts %}
+                    <form method="post" action="{{ item.action_url }}" class="qac-card">
+                        <input type="hidden" name="task" value="continue">
+                        <input type="hidden" name="data[route]" value="{{ item.parent_path }}">
+                        <input type="hidden" name="data[name]" value="{{ item.template }}">
+                        <input type="hidden" name="data[title]" value="{{ item.label }}">
+                        {{ nonce_field('admin-form', 'admin-nonce')|raw }}
+                        <button type="submit" class="qac-card-button">
+                            <i class="fa fa-fw fa-plus qac-card-icon"></i>
+                            <span class="qac-card-label">{{ item.label }}</span>
+                            <span class="qac-card-meta">{{ item.template }}{% if item.parent_path %} &middot; {{ item.parent_path }}{% endif %}</span>
+                        </button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="qac-empty">
+                Chưa có shortcut nào được cấu hình. Vào
+                <a href="{{ base_url_relative }}/plugins/admin-quick-menu">cấu hình plugin Admin Quick Menu</a>
+                để thêm.
+            </p>
+        {% endif %}
+    </div>
+{% endblock %}

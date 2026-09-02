@@ -3,6 +3,7 @@
 namespace Grav\Plugin;
 
 use Grav\Common\Plugin;
+use RocketTheme\Toolbox\Event\Event;
 
 /**
  * Admin Quick Menu
@@ -12,6 +13,11 @@ use Grav\Common\Plugin;
  * đã cấu hình sẵn label + thư mục cha + template) và "Liên kết" (link tĩnh
  * tùy chỉnh). Mỗi shortcut "Thêm mới" là 1 form HTML submit thẳng vào cơ chế
  * "Add Page" có sẵn của Grav Admin (task=continue), không cần JS/AJAX.
+ *
+ * Bên trong Admin Panel, cùng danh sách shortcut "Thêm mới" đó còn được lặp
+ * lại thành 1 mục "Quick Add Content" trên menu trái (xem onAdminMenu() +
+ * admin/templates/quick-add-content.html.twig), để không cần rời khỏi admin
+ * ra frontend mới bấm được nút tạo nhanh.
  */
 class AdminQuickMenuPlugin extends Plugin
 {
@@ -25,6 +31,12 @@ class AdminQuickMenuPlugin extends Plugin
     public function onPluginsInitialized(): void
     {
         if ($this->isAdmin()) {
+            $this->enable([
+                'onAdminMenu'              => ['onAdminMenu', 0],
+                'onAdminTwigTemplatePaths' => ['onAdminTwigTemplatePaths', 0],
+                'onTwigSiteVariables'      => ['onTwigSiteVariables', 0],
+            ]);
+
             return;
         }
 
@@ -32,6 +44,39 @@ class AdminQuickMenuPlugin extends Plugin
             'onTwigTemplatePaths' => ['onTwigTemplatePaths', 0],
             'onOutputGenerated'   => ['onOutputGenerated', 0],
         ]);
+    }
+
+    public function onAdminMenu(): void
+    {
+        $this->grav['twig']->plugins_hooked_nav['Quick Add Content'] = [
+            'route'     => 'quick-add-content',
+            'icon'      => 'fa-plus-circle',
+            'authorize' => ['admin.pages', 'admin.super'],
+            'priority'  => 80,
+        ];
+    }
+
+    public function onAdminTwigTemplatePaths(Event $event): void
+    {
+        $paths = $event['paths'];
+        $paths[] = __DIR__ . '/admin/templates';
+        $event['paths'] = $paths;
+    }
+
+    public function onTwigSiteVariables(): void
+    {
+        /** @var \Grav\Plugin\Admin|null $admin */
+        $admin = $this->grav['admin'] ?? null;
+        if (!$admin || $admin->location !== 'quick-add-content') {
+            return;
+        }
+
+        $this->grav['assets']->addCss('plugin://admin-quick-menu/css/admin-quick-add.css');
+
+        $adminRoute = trim((string) $this->grav['config']->get('plugins.admin.route', '/admin'), '/');
+        $root = rtrim($this->grav['uri']->rootUrl(false), '/');
+
+        $this->grav['twig']->twig_vars['quick_add_shortcuts'] = $this->buildShortcuts($root, $adminRoute);
     }
 
     public function onTwigTemplatePaths(): void
