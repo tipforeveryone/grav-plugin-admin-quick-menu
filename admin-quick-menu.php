@@ -25,7 +25,34 @@ class AdminQuickMenuPlugin extends Plugin
     {
         return [
             'onPluginsInitialized' => ['onPluginsInitialized', 0],
+            'onApiSidebarItems'    => ['onApiSidebarItems', 0],
         ];
+    }
+
+    /**
+     * Admin2 counterpart to onAdminMenu() below: registers the same "Quick
+     * Add Content" entry in the admin-next sidebar. The page itself is a
+     * component-mode plugin page (see admin-next/pages/admin-quick-menu.js),
+     * auto-discovered by the api plugin's GpmController — no onApiPluginPageInfo
+     * handler needed.
+     */
+    public function onApiSidebarItems(Event $event): void
+    {
+        if (!$this->config->get('plugins.admin-quick-menu.enabled', true)) {
+            return;
+        }
+
+        $items = $event['items'] ?? [];
+        $items[] = [
+            'id'        => 'admin-quick-menu',
+            'plugin'    => 'admin-quick-menu',
+            'label'     => 'Quick Add Content',
+            'icon'      => 'fa-plus-circle',
+            'route'     => '/plugin/admin-quick-menu',
+            'priority'  => 80,
+            'authorize' => ['api.pages', 'api.super'],
+        ];
+        $event['items'] = $items;
     }
 
     public function onPluginsInitialized(): void
