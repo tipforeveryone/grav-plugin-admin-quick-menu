@@ -2,18 +2,12 @@
  * Admin Quick Menu — Admin2 plugin page.
  *
  * Reimplements the classic-admin "Quick Add Content" page as a component
- * mode plugin page: reads `menu_shortcuts` / `custom_links` via the
- * plugin's own GET /plugin/admin-quick-menu/shortcuts endpoint and, on
- * click, creates the page via the generic POST /pages endpoint. This
+ * mode plugin page: reads `menu_shortcuts` / `custom_links` from the
+ * plugin's own config (already generically exposed at
+ * GET /config/plugins/admin-quick-menu — no custom endpoint needed) and,
+ * on click, creates the page via the generic POST /pages endpoint. This
  * mirrors the classic-admin version's one-click flow, which posted straight
  * into Grav Admin's built-in "add page" task.
- *
- * The shortcuts endpoint is deliberately its own route rather than the
- * generic GET /config/plugins/admin-quick-menu one — that one is gated on
- * api.config.read, the same blanket permission that unlocks the whole
- * Configuration section, which would force granting full Configuration
- * access just to use Quick Add. The dedicated endpoint is gated on
- * api.pages.write instead, the same permission page creation already needs.
  */
 
 const TAG = window.__GRAV_PAGE_TAG;
@@ -49,10 +43,10 @@ class AdminQuickMenuPage extends HTMLElement {
 
     async _load() {
         try {
-            const res = await this._fetch('/plugin/admin-quick-menu/shortcuts');
-            const data = res.data ?? {};
-            this._shortcuts = Array.isArray(data.menu_shortcuts) ? data.menu_shortcuts : [];
-            this._customLinks = Array.isArray(data.custom_links) ? data.custom_links : [];
+            const res = await this._fetch('/config/plugins/admin-quick-menu');
+            const config = res.data ?? {};
+            this._shortcuts = Array.isArray(config.menu_shortcuts) ? config.menu_shortcuts : [];
+            this._customLinks = Array.isArray(config.custom_links) ? config.custom_links : [];
             this._render();
         } catch (err) {
             this._renderError(err?.message || 'Failed to load configuration');

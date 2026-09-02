@@ -3,7 +3,6 @@
 namespace Grav\Plugin;
 
 use Grav\Common\Plugin;
-use Grav\Plugin\AdminQuickMenu\AdminQuickMenuApiController;
 use RocketTheme\Toolbox\Event\Event;
 
 /**
@@ -27,24 +26,7 @@ class AdminQuickMenuPlugin extends Plugin
         return [
             'onPluginsInitialized' => ['onPluginsInitialized', 0],
             'onApiSidebarItems'    => ['onApiSidebarItems', 0],
-            'onApiRegisterRoutes'  => ['onApiRegisterRoutes', 0],
         ];
-    }
-
-    /**
-     * Own settings endpoint for the admin2 page (see
-     * AdminQuickMenuApiController) — gated on api.pages.write rather than
-     * the generic config endpoint's api.config.read, so an account can use
-     * Quick Add Content without being able to browse/edit Configuration.
-     */
-    public function onApiRegisterRoutes(Event $event): void
-    {
-        if (!$this->config->get('plugins.admin-quick-menu.enabled', true)) {
-            return;
-        }
-
-        $routes = $event['routes'];
-        $routes->get('/plugin/admin-quick-menu/shortcuts', [AdminQuickMenuApiController::class, 'shortcuts']);
     }
 
     /**
@@ -68,18 +50,13 @@ class AdminQuickMenuPlugin extends Plugin
             'icon'      => 'fa-plus-circle',
             'route'     => '/plugin/admin-quick-menu',
             'priority'  => 80,
-            'authorize' => ['api.pages.write', 'api.super'],
+            'authorize' => ['api.pages', 'api.super'],
         ];
         $event['items'] = $items;
     }
 
     public function onPluginsInitialized(): void
     {
-        // Required unconditionally, before the isAdmin() early-return below,
-        // so it's loaded on every request (API included) by the time a
-        // cached API route dispatches to it.
-        require_once __DIR__ . '/classes/AdminQuickMenuApiController.php';
-
         if ($this->isAdmin()) {
             $this->enable([
                 'onAdminMenu'              => ['onAdminMenu', 0],
