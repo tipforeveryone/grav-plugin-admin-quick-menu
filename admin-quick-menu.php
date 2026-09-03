@@ -112,15 +112,21 @@ class AdminQuickMenuPlugin extends Plugin
     }
 
     /**
-     * Chèn CSS + markup menu trực tiếp vào output (theme không render Grav
-     * Assets, xem ghi chú trong in-place-edit-button plugin).
+     * Chèn CSS + markup menu + bridge JS admin2 trực tiếp vào output (theme
+     * không render Grav Assets, xem ghi chú trong in-place-edit-button plugin).
+     *
+     * Trước đây gate bằng canEdit() (session cổ điển). Giờ luôn chèn: renderMenu()
+     * tự quyết định render menu ở dạng "pending" (ẩn qua CSS) khi canEdit() false,
+     * để bridge JS bên dưới có thể mở khóa cho user chỉ đăng nhập qua admin2/JWT
+     * — session đó không hề chạm tới canEdit() ở đây. Cùng cơ chế và cùng đánh
+     * đổi đã ghi chú trong in-place-edit-button.php.
+     *
+     * js/admin2-bridge.js tồn tại y hệt bên plugin in-place-edit-button (2
+     * plugin cùng cần) — dedup-guard bằng cách check substring trước khi chèn,
+     * để cài cả 2 plugin không bị load script trùng 2 lần.
      */
     public function onOutputGenerated(): void
     {
-        if (!$this->canEdit()) {
-            return;
-        }
-
         $output = $this->grav->output;
         if (strpos($output, '</head>') === false || strpos($output, '</body>') === false) {
             return;
@@ -142,6 +148,16 @@ class AdminQuickMenuPlugin extends Plugin
             $output = str_replace('</body>', $menu . "\n</body>", $output);
         }
 
+        if (strpos($output, 'admin2-bridge.js') === false) {
+            $jsHref = $base . '/user/plugins/admin-quick-menu/js/admin2-bridge.js';
+            $jsFile = __DIR__ . '/js/admin2-bridge.js';
+            if (is_file($jsFile)) {
+                $jsHref .= '?v=' . filemtime($jsFile);
+            }
+            $script = '<script src="' . $jsHref . '"></script>';
+            $output = str_replace('</body>', $script . "\n</body>", $output);
+        }
+
         $this->grav->output = $output;
     }
 
@@ -151,21 +167,35 @@ class AdminQuickMenuPlugin extends Plugin
         $root = rtrim($this->grav['uri']->rootUrl(false), '/');
 
         $adminUrl = $root . '/' . $adminRoute;
-        $shortcuts = $this->buildShortcuts($root, $adminRoute);
+        // Dashboard gốc của admin2 (route "/" trong manifest SPA — xem
+        // user/plugins/admin2/app/_app/immutable/entry/app.*.js). Dùng cho cả
+        // link "Trang quản trị" tĩnh lẫn base URL của các shortcut "Thêm mới".
+        $admin2Route = trim((string) $this->grav['config']->get('plugins.admin2.route', '/admin2'), '/');
+        $admin2Url = $root . '/' . $admin2Route;
+        $shortcuts = $this->buildShortcuts($root, $adminRoute, $admin2Route);
         $customLinks = $this->buildCustomLinks($root);
 
         return $this->grav['twig']->processTemplate('partials/quick-menu.html.twig', [
             'admin_url'    => $adminUrl,
+            'admin2_url'   => $admin2Url,
             'shortcuts'    => $shortcuts,
             'custom_links' => $customLinks,
+            'pending'      => !$this->canEdit(),
         ]);
     }
 
     /**
      * Nhóm "Thêm mới": mỗi item submit thẳng vào cơ chế Add Page có sẵn của
      * Grav Admin (task=continue) để pre-fill route (thư mục cha) + template.
+     *
+     * admin2_url song song cho SPA admin2: route "/pages/new" của nó (node
+     * 19 trong manifest SPA — xem user/plugins/admin2/app/_app/immutable/
+     * nodes/19.*.js) tự đọc 3 query-param `parent`, `template`, `title` để
+     * pre-fill y hệt — đã dò trực tiếp trong bundle đã compile (tìm thấy
+     * `Q.get("parent")||"/"`, `Q.get("template")||"default"`), không phải
+     * đoán. Không dùng nonce/POST vì đây là điều hướng GET thường của SPA.
      */
-    private function buildShortcuts(string $root, string $adminRoute): array
+    private function buildShortcuts(string $root, string $adminRoute, string $admin2Route): array
     {
         $shortcuts = (array) $this->grav['config']->get('plugins.admin-quick-menu.menu_shortcuts', []);
 
@@ -180,11 +210,18 @@ class AdminQuickMenuPlugin extends Plugin
             $parentPath = trim((string) ($shortcut['parent_path'] ?? ''));
             $parentPath = $parentPath !== '' ? '/' . trim($parentPath, '/') : '';
 
+            $admin2Query = http_build_query([
+                'parent'   => $parentPath !== '' ? $parentPath : '/',
+                'template' => $template,
+                'title'    => $label,
+            ]);
+
             $items[] = [
                 'label'       => $label,
                 'template'    => $template,
                 'parent_path' => $parentPath,
                 'action_url'  => $root . '/' . $adminRoute . '/pages' . $parentPath,
+                'admin2_url'  => $root . '/' . $admin2Route . '/pages/new?' . $admin2Query,
             ];
         }
 

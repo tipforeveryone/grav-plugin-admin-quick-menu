@@ -15,6 +15,17 @@
     z-index: 9999;
 }
 
+/* Menu "pending": user chưa có session cổ điển lúc render (vd. chỉ đăng nhập
+   qua admin2/JWT — xem renderMenu() trong admin-quick-menu.php). Ẩn hẳn bằng
+   display:none. theme://js/admin2-bridge.js gắn class .is-admin2-authed vào
+   <body> sau khi tự xác thực JWT đó phía client -> mở khóa lại menu. */
+.aqm-menu.aqm-pending {
+    display: none;
+}
+body.is-admin2-authed .aqm-menu.aqm-pending {
+    display: block;
+}
+
 .aqm-checkbox {
     position: absolute;
     opacity: 0;

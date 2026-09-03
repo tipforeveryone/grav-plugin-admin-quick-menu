@@ -1,4 +1,4 @@
-<div class="aqm-menu">
+<div class="aqm-menu{% if pending %} aqm-pending{% endif %}">
     <input type="checkbox" id="aqm-toggle" class="aqm-checkbox">
     <label for="aqm-toggle" class="aqm-trigger" aria-label="Menu quản trị nhanh">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
@@ -9,14 +9,14 @@
     </label>
     <ul class="aqm-dropdown">
         <li class="aqm-item">
-            <a href="{{ admin_url }}" class="aqm-link aqm-link--admin">Trang quản trị</a>
+            <a href="{{ admin_url }}" data-ipeb-admin2-href="{{ admin2_url }}" class="aqm-link aqm-link--admin">Trang quản trị</a>
         </li>
 
         {% if shortcuts %}
         <li class="aqm-group-label">Thêm mới</li>
         {% for item in shortcuts %}
         <li class="aqm-item">
-            <form method="post" action="{{ item.action_url }}" class="aqm-form">
+            <form method="post" action="{{ item.action_url }}" class="aqm-form" data-ipeb-admin2-href="{{ item.admin2_url }}">
                 <input type="hidden" name="task" value="continue">
                 <input type="hidden" name="data[route]" value="{{ item.parent_path }}">
                 <input type="hidden" name="data[name]" value="{{ item.template }}">
