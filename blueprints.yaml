@@ -10,6 +10,7 @@ license: MIT
 dependencies:
   - { name: grav, version: '>=1.7.0' }
   - { name: admin }
+  - { name: simple-multi-language-site }
 
 form:
   validation: loose
@@ -40,6 +41,11 @@ form:
           type: text
           label: Đường dẫn thư mục cha
           help: 'VD: /kienthucphaply (để trống = thư mục gốc)'
+        .language:
+          type: select
+          label: Ngôn ngữ
+          help: 'Root path của ngôn ngữ đã chọn (vd /vi, /en) sẽ được tự động thêm vào trước Đường dẫn thư mục cha khi mở màn hình tạo trang. Để trống nếu plugin simple-multi-language-site chưa cài/cấu hình ngôn ngữ nào.'
+          data-options@: '\Grav\Plugin\SimpleMultiLanguageSitePlugin::getLanguageOptions'
         .template:
           type: text
           label: Template

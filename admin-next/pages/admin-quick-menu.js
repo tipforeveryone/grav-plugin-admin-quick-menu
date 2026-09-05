@@ -5,9 +5,13 @@
  * mode plugin page: reads `menu_shortcuts` / `custom_links` from the
  * plugin's own config (already generically exposed at
  * GET /config/plugins/admin-quick-menu — no custom endpoint needed) and,
- * on click, creates the page via the generic POST /pages endpoint. This
- * mirrors the classic-admin version's one-click flow, which posted straight
- * into Grav Admin's built-in "add page" task.
+ * on click, opens admin2's own "/pages/new" screen with `parent` + `template`
+ * pre-filled (title/slug intentionally left for the user to type) so the
+ * generic add-page flow — validation, template field list, etc. — still
+ * applies. Each shortcut can optionally pick a language (from the
+ * simple-multi-language-site plugin's configured vi/en/... root paths);
+ * when set, that language's root_path is prefixed onto parent_path so the
+ * page lands under the correct language tree.
  */
 
 const TAG = window.__GRAV_PAGE_TAG;
@@ -50,23 +54,12 @@ function currentAccessToken() {
     return API_TOKEN_FALLBACK;
 }
 
-function slugify(str) {
-    return String(str)
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-}
-
 class AdminQuickMenuPage extends HTMLElement {
     constructor() {
         super();
         this._shortcuts = [];
         this._customLinks = [];
+        this._languages = [];
     }
 
     connectedCallback() {
@@ -83,6 +76,17 @@ class AdminQuickMenuPage extends HTMLElement {
             const config = res.data ?? {};
             this._shortcuts = Array.isArray(config.menu_shortcuts) ? config.menu_shortcuts : [];
             this._customLinks = Array.isArray(config.custom_links) ? config.custom_links : [];
+
+            // Best-effort — the simple-multi-language-site plugin may be
+            // disabled or absent; a shortcut with no `language` set still
+            // works fine without this.
+            try {
+                const smls = await this._fetch('/config/plugins/simple-multi-language-site');
+                this._languages = Array.isArray(smls.data?.languages) ? smls.data.languages : [];
+            } catch (e) {
+                this._languages = [];
+            }
+
             this._render();
         } catch (err) {
             this._renderError(err?.message || 'Failed to load configuration');
@@ -106,35 +110,30 @@ class AdminQuickMenuPage extends HTMLElement {
         return body;
     }
 
-    async _createFromShortcut(shortcut, cardEl) {
-        const statusEl = cardEl.querySelector('.aqm-card-status');
-        const buttonEl = cardEl.querySelector('.aqm-card-button');
-        const label = String(shortcut.label || '').trim();
+    _openCreateScreen(shortcut) {
         const template = String(shortcut.template || '').trim();
-        const parentPath = shortcut.parent_path ? '/' + String(shortcut.parent_path).replace(/^\/|\/$/g, '') : '';
-
-        if (!label || !template) {
+        if (!template) {
             return;
         }
 
-        const slug = slugify(label) || 'trang-moi';
-        const route = (parentPath === '/' ? '' : parentPath) + '/' + slug;
+        const language = shortcut.language
+            ? this._languages.find((l) => l.code === shortcut.language)
+            : null;
+        const rootPath = language ? '/' + String(language.root_path || '').replace(/^\/|\/$/g, '') : '';
+        const parentPath = shortcut.parent_path ? '/' + String(shortcut.parent_path).replace(/^\/|\/$/g, '') : '';
+        const parent = rootPath + parentPath;
 
-        buttonEl.disabled = true;
-        statusEl.textContent = 'Đang tạo…';
-        statusEl.className = 'aqm-card-status aqm-status-pending';
+        const params = new URLSearchParams();
+        if (parent) {
+            params.set('parent', parent);
+        }
+        params.set('template', template);
 
-        try {
-            const created = await this._fetch('/pages', {
-                method: 'POST',
-                body: JSON.stringify({ route, title: label, template }),
-            });
-            statusEl.textContent = `Đã tạo tại ${created.data?.route || route}`;
-            statusEl.className = 'aqm-card-status aqm-status-success';
-        } catch (err) {
-            statusEl.textContent = err.message || 'Tạo trang thất bại';
-            statusEl.className = 'aqm-card-status aqm-status-error';
-            buttonEl.disabled = false;
+        const targetPath = (window.__GRAV_ADMIN_BASE || '') + '/pages/new?' + params.toString();
+        if (typeof window.__GRAV_NAVIGATE === 'function') {
+            window.__GRAV_NAVIGATE(targetPath);
+        } else {
+            window.location.href = targetPath;
         }
     }
 
@@ -168,9 +167,8 @@ class AdminQuickMenuPage extends HTMLElement {
                                     <button type="button" class="aqm-card-button">
                                         <i class="fa fa-fw fa-plus aqm-card-icon"></i>
                                         <span class="aqm-card-label">${this._escape(s.label)}</span>
-                                        <span class="aqm-card-meta">${this._escape(s.template)}${s.parent_path ? ' · ' + this._escape(s.parent_path) : ''}</span>
+                                        <span class="aqm-card-meta">${this._escape(s.template)}${s.parent_path ? ' · ' + this._escape(s.parent_path) : ''}${s.language ? ' · ' + this._escape(s.language) : ''}</span>
                                     </button>
-                                    <div class="aqm-card-status"></div>
                                 </div>
                             `).join('')}
                         </div>
@@ -194,7 +192,7 @@ class AdminQuickMenuPage extends HTMLElement {
         this.querySelectorAll('.aqm-card').forEach((cardEl) => {
             const shortcut = shortcuts[Number(cardEl.dataset.index)];
             cardEl.querySelector('.aqm-card-button').addEventListener('click', () => {
-                this._createFromShortcut(shortcut, cardEl);
+                this._openCreateScreen(shortcut);
             });
         });
     }
@@ -218,10 +216,6 @@ class AdminQuickMenuPage extends HTMLElement {
                 .aqm-card-icon { font-size: 20px; color: var(--primary, #3b82f6); }
                 .aqm-card-label { font-size: 13px; font-weight: 500; text-align: center; }
                 .aqm-card-meta { font-size: 11px; color: var(--muted-foreground, #6b7280); text-align: center; }
-                .aqm-card-status { font-size: 11px; text-align: center; padding: 4px 8px 8px; min-height: 14px; }
-                .aqm-status-pending { color: var(--muted-foreground, #6b7280); }
-                .aqm-status-success { color: var(--success, #16a34a); }
-                .aqm-status-error { color: var(--destructive, #dc2626); }
                 .aqm-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
                 .aqm-link { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; color: var(--foreground, #1f2937); text-decoration: none; font-size: 13px; }
                 .aqm-link:hover { background: var(--accent, #f3f4f6); }
